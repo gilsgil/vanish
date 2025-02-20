@@ -67,16 +67,16 @@ Vanish is a tool written in Go that filters out domains which are protected by p
 
    Clone the repository to a folder outside your `$GOPATH` (this is recommended):
    ```bash
-   git clone https://github.com/yourusername/vanish.git
+   git clone https://github.com/gilsgil/vanish.git
    cd vanish
    ```
-   Replace `yourusername` with your actual GitHub username.
+   Replace `gilsgil` with your actual GitHub username.
 
 2. **Initialize the Go Module**
 
    Initialize the module by providing a valid module path:
    ```bash
-   go mod init github.com/yourusername/vanish
+   go mod init github.com/gilsgil/vanish
    ```
 
 3. **Download Dependencies and Build**
@@ -93,9 +93,9 @@ Vanish is a tool written in Go that filters out domains which are protected by p
 If your repository is public (or you have access to the module path), you can install Vanish directly into your `$GOPATH/bin` (or `$GOBIN`):
 
 ```bash
-go install github.com/yourusername/vanish@latest
+go install github.com/gilsgil/vanish@latest
 ```
-Replace `github.com/yourusername/vanish` with your repository path. Make sure your Go binary directory is in your `PATH`.
+Replace `github.com/gilsgil/vanish` with your repository path. Make sure your Go binary directory is in your `PATH`.
 
 ---
 
@@ -194,7 +194,7 @@ Contributions to Vanish are welcome!
 1. **Fork the Repository** on GitHub.
 2. **Clone Your Fork:**
    ```bash
-   git clone https://github.com/yourusername/vanish.git
+   git clone https://github.com/gilsgil/vanish.git
    ```
 3. **Create a New Branch:**
    ```bash
@@ -217,11 +217,11 @@ Contributions to Vanish are welcome!
 
 If you’re starting a new repository for Vanish, follow these steps:
 
-1. **Create a New Repository** on GitHub (e.g., `github.com/yourusername/vanish`).
+1. **Create a New Repository** on GitHub (e.g., `github.com/gilsgil/vanish`).
 2. **Initialize a Local Git Repository:**
    ```bash
    git init
-   git remote add origin https://github.com/yourusername/vanish.git
+   git remote add origin https://github.com/gilsgil/vanish.git
    ```
 3. **Add Files and Commit:**
    ```bash
@@ -245,7 +245,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 For questions, issues, or suggestions:
 
-- **GitHub Issues:** [Open an Issue](https://github.com/yourusername/vanish/issues)
+- **GitHub Issues:** [Open an Issue](https://github.com/gilsgil/vanish/issues)
 - **Email:** *(Include your contact email if desired)*
 
 ---
