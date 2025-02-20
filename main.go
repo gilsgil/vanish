@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -37,6 +38,47 @@ func randomUserAgent() string {
 	}
 	rand.Seed(time.Now().UnixNano())
 	return agents[rand.Intn(len(agents))]
+}
+
+// isPrivateIP checks if an IP is a private or local address.
+func isPrivateIP(ip net.IP) bool {
+	// Loopback or unspecified (0.0.0.0)
+	if ip.IsLoopback() || ip.Equal(net.IPv4zero) {
+		return true
+	}
+
+	// Define private CIDRs
+	privateCIDRs := []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}
+	for _, cidr := range privateCIDRs {
+		_, network, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
+		}
+		if network.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// checkPrivate resolves the domain and returns true if it resolves to any private IP.
+// If a private IP is found, verbose output is printed.
+func checkPrivate(domain string, verbose bool) bool {
+	ips, err := net.LookupIP(domain)
+	if err != nil {
+		// On error, we assume domain may be public and let further checks handle it.
+		return false
+	}
+	for _, ip := range ips {
+		if isPrivateIP(ip) {
+			if verbose {
+				fmt.Printf("%s (resolved to private IP: %s)\n", domain, ip.String())
+			}
+			return true
+		}
+	}
+	return false
 }
 
 // checkDNS uses the "host" and "dig" commands to detect if a domain is behind a WAF/CDN.
@@ -110,29 +152,35 @@ func checkHTTP(domain string, verbose bool) bool {
 	return false
 }
 
-// processDomain is the main check flow: DNS -> HTTP.
-// Returns true if the domain is "clean" (not behind WAF/CDN), or false if it should be filtered out.
+// processDomain runs all checks (private IP, DNS, and HTTP) on the domain.
+// Returns true if the domain is "clean" (not behind a WAF/CDN and not resolving to a private IP),
+// otherwise false.
 func processDomain(domain string, verbose bool) bool {
 	// Remove any ":port" part if present
 	if strings.Contains(domain, ":") {
 		domain = strings.Split(domain, ":")[0]
 	}
 
-	// First check DNS
+	// First, check if the domain resolves to a private IP
+	if checkPrivate(domain, verbose) {
+		return false
+	}
+
+	// Next, check via DNS using "host" and "dig"
 	if checkDNS(domain, verbose) {
 		return false
 	}
 
-	// If not detected via DNS, check HTTP
+	// Finally, if DNS passes, check HTTP headers
 	if checkHTTP(domain, verbose) {
 		return false
 	}
 
-	// If we reach here, no WAF/CDN was detected
+	// Domain passes all checks; it's clean
 	return true
 }
 
-// readDomains reads domains either from a file, a single target, or stdin
+// readDomains reads domains either from a file, a target parameter, or from stdin.
 func readDomains(listFile, target string) ([]string, error) {
 	var domains []string
 
@@ -165,7 +213,7 @@ func readDomains(listFile, target string) ([]string, error) {
 			return nil, err
 		}
 		if (info.Mode() & os.ModeCharDevice) != 0 {
-			return nil, fmt.Errorf("no input from file, list, target or stdin")
+			return nil, fmt.Errorf("no input from file, list, target, or stdin")
 		}
 
 		reader := bufio.NewReader(os.Stdin)
@@ -197,8 +245,8 @@ func main() {
 
 	flag.StringVar(&listFile, "l", "", "File containing the list of domains")
 	flag.StringVar(&singleTarget, "t", "", "Single domain to check")
-	flag.IntVar(&concurrency, "c", 10, "Number of threads (goroutines) for parallel execution")
-	flag.BoolVar(&verbose, "v", false, "Enable verbose mode (show WAF/CDN detections)")
+	flag.IntVar(&concurrency, "c", 10, "Number of goroutines for parallel execution")
+	flag.BoolVar(&verbose, "v", false, "Enable verbose mode (show WAF/CDN detections and private IP resolutions)")
 	flag.Parse()
 
 	// Read domains from file, target, or stdin
@@ -218,7 +266,7 @@ func main() {
 			defer wg.Done()
 			for d := range domainChan {
 				if processDomain(d, verbose) {
-					// If not behind CDN, print it
+					// If the domain passes all checks, print it.
 					fmt.Println(d)
 				}
 			}
